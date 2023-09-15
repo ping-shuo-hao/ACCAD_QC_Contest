@@ -2,6 +2,7 @@ from utils.hardware import pNode, pGraph
 from utils.mst import UnionFind, kruskal_mst
 from utils.floyd import floyd_warshall
 from utils.tree import Tree
+from qiskit.circuit import Parameter
 
 import numpy as np
 import pdb
@@ -12,6 +13,7 @@ class Scheduler:
         self.pauli_map = pauli_map
         self.graph = graph
         self.qc = qc
+        self.thetas = []
         
         self.reverse_pauli_map = [-1 for i in self.graph.data]
         self.is_ancilla = [True for i in self.graph.data]
@@ -219,7 +221,9 @@ class Scheduler:
                     pdb.set_trace()
                 price = 3 * len(path)
             elif instruction.startswith('Logical_RZ'):
-                self.qc.rz(1, self.pauli_map[data])
+                theta = Parameter(f'theta_{len(self.thetas)}')
+                self.qc.rz(theta, self.pauli_map[data])
+                self.thetas.append(theta)
                 price = 0
             elif instruction.startswith('Logical_right_X'):
                 self.qc.u(np.pi/2, 0, np.pi, self.pauli_map[data])
