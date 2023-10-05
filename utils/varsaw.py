@@ -15,7 +15,7 @@ nodes indicate those two terms commute with one another. Finding the circuits
 now becomes a clique finding problem which can be solved by the
 BronKerbosch algorithm.
 """
-
+import pdb
 import time
 import sys
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -350,14 +350,14 @@ def vqe_circuit(input_circuit, hamiltonian,Nq):
             #no measurement for identity
             continue
         elif el == 'Z':
-            final_circuit.measure(i, Nq-i-1)
+            final_circuit.measure(i, i)
         elif el == 'X':
             final_circuit.h(i)
-            final_circuit.measure(i, Nq-i-1)
+            final_circuit.measure(i, i)
         elif el == 'Y':
             final_circuit.sdg(i)
             final_circuit.h(i)
-            final_circuit.measure(i, Nq-i-1)
+            final_circuit.measure(i, i)
 
     return final_circuit
 
@@ -376,26 +376,29 @@ def get_expecatation_value(first_term,hamiltonian,results,measure_dict):
         temp_val=0
         for re in result.keys():
             temp_val+=result[re]*get_term_value(term,re)
-        print(term,temp_val)
+        # print(term,temp_val)
         expect_val+=coef*temp_val
 
     return expect_val
 
-def varsaw_expectation(circuit,measurements,measure_dict,first_term,hamiltonian):
+def varsaw_expectation(circuit,measurements,measure_dict,first_term,hamiltonian, params=None):
     list_of_circuit=[]
     for term in measurements:
         cir=circuit.copy()
         list_of_circuit.append(vqe_circuit(cir,term,len(term)))
 
-    for cir in list_of_circuit:
-        print(cir)
+    # for cir in list_of_circuit:
+    #     print(cir)
         
     sampler=Sampler()
-    job = sampler.run(list_of_circuit)
+    if params == None:
+        job = sampler.run(list_of_circuit)
+    else:
+        job = sampler.run(list_of_circuit, parameter_values=[params] * len(list_of_circuit))
     results=[]
     for result in job.result().quasi_dists:
         results.append(result.binary_probabilities())
-    print(results)
+    # print(results)
 
     return get_expecatation_value(first_term,hamiltonian,results,measure_dict)
     
