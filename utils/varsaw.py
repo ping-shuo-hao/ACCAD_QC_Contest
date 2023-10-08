@@ -25,7 +25,7 @@ import pprint
 import copy
 import networkx as nx
 from networkx.algorithms import approximation
-
+from qiskit.quantum_info import SparsePauliOp
 
 class CommutativityType(object):
     def gen_comm_graph(term_array):
@@ -381,7 +381,7 @@ def get_expecatation_value(first_term,hamiltonian,results,measure_dict):
 
     return expect_val
 
-def varsaw_expectation(circuit,measurements,measure_dict,first_term,hamiltonian, params=None):
+def varsaw_expectation(circuit,measurements,measure_dict,first_term,hamiltonian, sampler, params=None):
     list_of_circuit=[]
     for term in measurements:
         cir=circuit.copy()
@@ -389,8 +389,7 @@ def varsaw_expectation(circuit,measurements,measure_dict,first_term,hamiltonian,
 
     # for cir in list_of_circuit:
     #     print(cir)
-        
-    sampler=Sampler()
+    
     if params == None:
         job = sampler.run(list_of_circuit)
     else:

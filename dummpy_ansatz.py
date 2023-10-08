@@ -10,6 +10,12 @@ from qiskit import QuantumCircuit
 from qiskit.utils import algorithm_globals
 from qiskit.algorithms.exceptions import AlgorithmError
 import pdb
+from qiskit.providers.fake_provider import *
+import pickle
+from qiskit.providers.aer.noise import NoiseModel
+import qiskit.providers.aer.noise as noise
+from utils.varsaw import parseHamiltonian, group_measurements, varsaw_expectation
+from qiskit_aer.primitives import Sampler
 
 seeds = 170
 algorithm_globals.random_seed = seeds
@@ -52,11 +58,26 @@ ansatz = UCCSD(
         mapper,
     ),
 )
-estimator = Estimator(
+
+with open('NoiseModel/fakekolkata.pkl', 'rb') as file:
+    noise_model_kolkata = pickle.load(file)
+with open('NoiseModel/fakecairo.pkl', 'rb') as file:
+    noise_model_cairo = pickle.load(file)
+with open('NoiseModel/fakemontreal.pkl', 'rb') as file:
+    noise_model_montreal = pickle.load(file)
+noise_model1 = noise.NoiseModel()
+noise_model2= noise.NoiseModel()
+noise_model3 = noise.NoiseModel()
+noise_model_kolkata = noise_model1.from_dict(noise_model_kolkata)
+noise_model_cairo = noise_model2.from_dict(noise_model_cairo)
+noise_model_montreal = noise_model3.from_dict(noise_model_montreal)
+
+
+sampler = Sampler(
     backend_options = {
         'method': 'statevector',
-        'device': 'CPU'
-        # 'noise_model': noise_model
+        'device': 'CPU',
+        'noise_model': noise_model_kolkata
     },
     run_options = {
         'shots': shot,
@@ -67,19 +88,17 @@ estimator = Estimator(
     }
 )
 
-vqe_solver = VQE(estimator, ansatz, SLSQP(maxiter=1))
-vqe_solver.initial_point = [0.0] * ansatz.num_parameters
 
-calc = GroundStateEigensolver(mapper, vqe_solver)
+h, first_term = parseHamiltonian('Hamiltonian/OHhamiltonian.txt')
+# measurements, measurement_dict = group_measurements(h)
+# filehandler = open(b"142observables.obj","wb")
+# pickle.dump((measurements, measurement_dict),filehandler)
 
-main_operator, aux_ops = calc.get_qubit_operators(qmolecule)
-parameters = [0.0] * ansatz.num_parameters
-num_parameters = ansatz.num_parameters
-parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
-batch_size = len(parameters)
+filehandler = open(b"142observables.obj","rb")
+measurements, measurement_dict = pickle.load(filehandler)
 
 
-dummy_ansatz = QuantumCircuit(12)
+dummy_ansatz = QuantumCircuit(12,12)
 dummy_ansatz.x(0)
 dummy_ansatz.x(1)
 dummy_ansatz.x(2)
@@ -90,13 +109,13 @@ dummy_ansatz.x(8)
 dummy_ansatz.x(9)
 
 # pdb.set_trace()
+print(varsaw_expectation(dummy_ansatz, measurements, measurement_dict, first_term, h, sampler))
+# try:
+#     job = estimator.run(batch_size * [dummy_ansatz], batch_size * [main_operator], [])
+#     estimator_result = job.result()
+# except Exception as exc:
+#     raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
 
-try:
-    job = estimator.run(batch_size * [dummy_ansatz], batch_size * [main_operator], [])
-    estimator_result = job.result()
-except Exception as exc:
-    raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
+# values = estimator_result.values
 
-values = estimator_result.values
-
-print(values)
+# print(values)
